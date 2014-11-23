@@ -80,7 +80,8 @@ class Cod4Rcon:
             except socket.error:
                 timed_out = True
         
-        # Remove the first each instance of bytes of 0xff
+        # Remove each instance of 4 bytes of 0xff which occur at the start
+        # of each rcon packet
         data = data.replace(self.packet_prefix, bytearray())
         self._data = data.decode()
         #print(self._data)
