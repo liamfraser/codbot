@@ -184,7 +184,11 @@ class CodBot:
 
             if self.match("{0}:? help".format(self.user)):
                 self.say("{0} supports the following commands".format(self.user))
-                self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off]")
+                self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off], next_map")
+
+            if self.match("{0}:? next_map".format(self.user)):
+                self.say("Loading next map")
+                self.rcon.rcon_command("map_rotate")
 
             if self.match("{0}:? list_maps".format(self.user)):
                 self.say(", ".join(self.rcon.map_list))
