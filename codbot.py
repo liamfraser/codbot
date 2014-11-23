@@ -133,7 +133,7 @@ class CodBot:
         self.network = 'irc.freenode.net'
         self.port = 6667
         self.channel = "#cs-york-cod"
-        self.user = "CodBot"
+        self.user = "CaptainHaddocko"
         self.rcon = Cod4Rcon()
         self._data = None
 
@@ -171,6 +171,10 @@ class CodBot:
 
             if self.match("PING"):
                 self._pong()
+
+            if self.match("PRIVMSG {0} :".format(self.user)):
+                # Ignore pms
+                continue
 
             if self.match("{0}: hello".format(self.user)):
                 self.say("Hello n00bs!")
