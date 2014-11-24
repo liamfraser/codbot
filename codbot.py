@@ -45,7 +45,8 @@ class Cod4Rcon:
                 "mp_pipeline", "mp_shipment","mp_showdown", "mp_strike",
                 "mp_vacant"]
 
-    def __init__(self):
+    def __init__(self, dev):
+        self.dev = dev
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.server = "cod.liamfraser.co.uk"
         self.port = 28960
@@ -85,7 +86,8 @@ class Cod4Rcon:
         # of each rcon packet
         data = data.replace(self.packet_prefix, bytearray())
         self._data = data.decode()
-        #print(self._data)
+        if self.dev:
+            print(self._data)
 
     def dvarlist(self):
         self.rcon_command("dvarlist")
@@ -130,13 +132,19 @@ class Cod4Rcon:
         return cur_map, players
 
 class CodBot:
-    def __init__(self, name):
+    def __init__(self, mode, name):
+        self.dev = False
+        if mode == "dev":
+            self.dev = True
+
         self.network = 'irc.freenode.net'
         self.port = 6667
         self.channel = "#cs-york-cod"
         self.user = name
-        self.rcon = Cod4Rcon()
+        self.rcon = Cod4Rcon(self.dev)
         self._data = None
+        # list of users on the channel
+        self._users = []
 
     def _send(self, msg):
         self.sock.send(msg.encode('utf-8'))
@@ -154,81 +162,102 @@ class CodBot:
 
     def say(self, msg):
         self._send("PRIVMSG {0} :{1}\r\n".format(self.channel, msg))
-
+    
     def match(self, pattern):
         match_str = self._data.rstrip("\r\n")
         m = re.search(pattern, match_str)
         return m
 
-    def get_data(self):
-        data = self.sock.recv(4096)
-        self._data = data.decode('latin-1')
-
     def run(self):
         self._connect()
 
         while True:
-            self.get_data()
+            data = self.sock.recv(4096)
+            # Process data line by line
+            for line in data.decode('latin-1').split("\r\n"):
+                if self.dev:
+                    print(line)
 
-            if self.match("PING"):
-                self._pong()
+                self._data = line
+                self.dispatch()
 
-            if self.match("PRIVMSG {0} :".format(self.user)):
-                # Ignore pms
-                continue
+    def dispatch(self):
+        if self.match("PING"):
+             self._pong()
 
-            if self.match("{0}: hello".format(self.user)):
-                self.say("Hello n00bs!")
-            
-            if self.match("hello {0}".format(self.user)):
-                self.say("Hello n00bs!")
+        if self.match("PRIVMSG {0} :".format(self.user)):
+            # Ignore pms
+            return
 
-            if self.match("{0}:? help".format(self.user)):
-                self.say("{0} supports the following commands".format(self.user))
-                self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off]")
+        if self.match("{0}: hello".format(self.user)):
+            self.say("Hello n00bs!")
+        
+        if self.match("hello {0}".format(self.user)):
+            self.say("Hello n00bs!")
 
-            if self.match("{0}:? list_maps".format(self.user)):
-                self.say(", ".join(self.rcon.map_list))
-            
-            m = self.match("{0}:? set_map ([^\s]+)".format(self.user))
-            if m:
-                new_map = m.group(1)
-                try:
-                    self.say("Setting map to {0}".format(new_map))
-                    self.rcon.set_map(new_map)
-                except Exception as e:
-                    self.say("Error: {0}".format(e))
-            
-            if self.match("{0}:? status".format(self.user)):
-                cur_map, players = self.rcon.status()
+        if self.match("{0}:? help".format(self.user)):
+            self.say("{0} supports the following commands".format(self.user))
+            self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off], summon")
+
+        if self.match("{0}:? list_maps".format(self.user)):
+            self.say(", ".join(self.rcon.map_list))
+        
+        if self.match("{0}:? summon".format(self.user)):
+            self.say("{0} plz".format(", ".join(self._users)))
+        
+        m = self.match("{0}:? set_map ([^\s]+)".format(self.user))
+        if m:
+            new_map = m.group(1)
+            try:
+                self.say("Setting map to {0}".format(new_map))
+                self.rcon.set_map(new_map)
+            except Exception as e:
+                self.say("Error: {0}".format(e))
+        
+        if self.match("{0}:? status".format(self.user)):
+            cur_map, players = self.rcon.status()
  
-                out = "map: {0}, ".format(cur_map)
+            out = "map: {0}, ".format(cur_map)
 
-                out += "{0} players".format(len(players))
-                if len(players) == 1:
-                    out = "{0}: {1}".format(out[:-1], ", ".join(players))
-                elif len(players) > 1:
-                    out = "{0}: {1}".format(out, ", ".join(players))
+            out += "{0} players".format(len(players))
+            if len(players) == 1:
+                out = "{0}: {1}".format(out[:-1], ", ".join(players))
+            elif len(players) > 1:
+                out = "{0}: {1}".format(out, ", ".join(players))
 
-                if self.rcon.get_hardcore():
-                    out += ", game_mode: hardcore"
-                else:    
-                    out += ", game_mode: core"
+            if self.rcon.get_hardcore():
+                out += ", game_mode: hardcore"
+            else:    
+                out += ", game_mode: core"
 
-                self.say(out)
-            
-            m = self.match("{0}:? set_hardcore ([^\s]+)".format(self.user))
-            if m:
-                bool_str = m.group(1)
-            
-                if bool_str == "on":
-                    self.say("Setting hardcore on (starts on next map)")
-                    self.rcon.set_hardcore(True)
-                elif bool_str == "off":
-                    self.say("Setting hardcore off (starts on next map)")
-                    self.rcon.set_hardcore(False)
-                else:
-                    self.say("Invalid hardcore mode: {0}".format(bool_str))
+            self.say(out)
+        
+        m = self.match("{0}:? set_hardcore ([^\s]+)".format(self.user))
+        if m:
+            bool_str = m.group(1)
+        
+            if bool_str == "on":
+                self.say("Setting hardcore on (starts on next map)")
+                self.rcon.set_hardcore(True)
+            elif bool_str == "off":
+                self.say("Setting hardcore off (starts on next map)")
+                self.rcon.set_hardcore(False)
+            else:
+                self.say("Invalid hardcore mode: {0}".format(bool_str))
+
+        # This is a list of users on the channel
+        m = self.match("353 {0} = {1} :{0} (.*)$".format(self.user,
+                                                         self.channel))
+        if m:
+            self._users = []
+            user_list = m.group(1).replace("@", "").split()
+            for u in user_list:
+                # Don't add ourselves to the list. That would be silly
+                if u != self.user:
+                    self._users.append(u)
+
+            if self.dev:
+                print("User list: {0}".format(self._users))
 
 if __name__ == "__main__":
     usage = "Usage: {0} dev|prod".format(sys.argv[0])
@@ -245,5 +274,5 @@ if __name__ == "__main__":
     else:
         sys.exit(usage)
 
-    cb = CodBot(name)
+    cb = CodBot(mode, name)
     cb.run()
