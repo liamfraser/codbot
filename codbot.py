@@ -26,6 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+import sys
 import socket
 import re
 
@@ -129,11 +130,11 @@ class Cod4Rcon:
         return cur_map, players
 
 class CodBot:
-    def __init__(self):
+    def __init__(self, name):
         self.network = 'irc.freenode.net'
         self.port = 6667
         self.channel = "#cs-york-cod"
-        self.user = "CaptainHaddocko"
+        self.user = name
         self.rcon = Cod4Rcon()
         self._data = None
 
@@ -230,5 +231,19 @@ class CodBot:
                     self.say("Invalid hardcore mode: {0}".format(bool_str))
 
 if __name__ == "__main__":
-    cb = CodBot()
+    usage = "Usage: {0} dev|prod".format(sys.argv[0])
+    if len(sys.argv) != 2:
+        sys.exit(usage)
+
+    mode = sys.argv[1]
+    name = ""
+
+    if mode == "dev":
+        name = "CodbotDev"
+    elif mode == "prod":
+        name = "CaptainHaddocko"
+    else:
+        sys.exit(usage)
+
+    cb = CodBot(name)
     cb.run()
