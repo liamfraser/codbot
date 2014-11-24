@@ -259,6 +259,56 @@ class CodBot:
             if self.dev:
                 print("User list: {0}".format(self._users))
 
+        # Keep track of users leaving and joining
+        m = self.match("^\:(.*?)![^\s]+ (PART|JOIN|QUIT)")
+        if m:
+            user = m.group(1)
+            action = m.group(2)
+
+            # Dont track our own user
+            if user == self.user:
+                return
+
+            if action == "JOIN":
+                self._users.append(user)
+                self.say("Hi {0}".format(user))
+            else:
+                # Must be part or quit because of regex
+                if user in self._users:
+                    self._users.remove(user)
+                
+            if self.dev:
+                print("User list: {0}".format(self._users))
+        
+        # Keep track of nick changes
+        m = self.match("^\:(.*?)![^\s]+ NICK :(.*)$")
+        if m:
+            old = m.group(1)
+            new = m.group(2)
+
+            # Must be part or quit because of regex
+            if old in self._users:
+                self._users.remove(old)
+            self._users.append(new)
+                
+            if self.dev:
+                print("{0} became {1}".format(old, new))
+        
+        # Keep track of kicks
+        m = self.match("^\:(.*?)![^\s]+ KICK #cs-york-cod ([^\s]+)")
+        if m:
+            kicker = m.group(1)
+            kickee = m.group(2)
+
+            # Must be part or quit because of regex
+            if kickee in self._users:
+                self._users.remove(kickee)
+
+            self.say("{0} just rekt {1}".format(kicker, kickee))
+
+            if self.dev:
+                print("{0} got kicked".format(kickee))
+
 if __name__ == "__main__":
     usage = "Usage: {0} dev|prod".format(sys.argv[0])
     if len(sys.argv) != 2:
