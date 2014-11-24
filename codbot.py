@@ -293,9 +293,10 @@ class CodBot:
                 
             if self.dev:
                 print("{0} became {1}".format(old, new))
+                print("User list: {0}".format(self._users))
         
         # Keep track of kicks
-        m = self.match("^\:(.*?)![^\s]+ KICK #cs-york-cod ([^\s]+)")
+        m = self.match("^\:(.*?)![^\s]+ KICK {0} ([^\s]+)".format(self.channel))
         if m:
             kicker = m.group(1)
             kickee = m.group(2)
