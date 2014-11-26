@@ -51,6 +51,7 @@ class Cod4Rcon:
         self.server = "cod.liamfraser.co.uk"
         self.port = 28960
 
+        # Will throw and exception and die if it's missing. Desired behaviour 
         with open('rconpassword', 'r') as f:
             self.rcon_password = f.read().rstrip("\n")
 
@@ -137,6 +138,10 @@ class CodBot:
         if mode == "dev":
             self.dev = True
 
+        # Will throw and exception and die if it's missing. Desired behaviour 
+        with open('serverpassword', 'r') as f:
+            self.server_password = f.read().rstrip("\n")
+
         self.network = 'irc.freenode.net'
         self.port = 6667
         self.channel = "#cs-york-cod"
@@ -191,7 +196,7 @@ class CodBot:
 
         if self.match("{0}:? help".format(self.user)):
             self.say("{0} supports the following commands".format(self.user))
-            self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off], next_map, summon")
+            self.say("help, hello, set_map $map, list_maps, status, set_hardcore [on|off], next_map, summon, server_details")
 
         if self.match("{0}:? next_map".format(self.user)):
             self.say("Loading next map")
@@ -202,7 +207,11 @@ class CodBot:
         
         if self.match("hello {0}".format(self.user)):
             self.say("Hello n00bs!")
-
+        
+        if self.match("{0}: server_details".format(self.user)):
+            self.say("COD: `connect cod.liamfraser.co.uk;password {0}".format(self.server_password))
+            self.say("Mumble: mumble.liamfraser.co.uk - password {0}".format(self.server_password))
+        
         if self.match("{0}:? list_maps".format(self.user)):
             self.say(", ".join(self.rcon.map_list))
         
