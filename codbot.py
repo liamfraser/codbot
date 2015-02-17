@@ -43,7 +43,7 @@ class Cod4Rcon:
                 "mp_countdown", "mp_crash", "mp_crash_snow", "mp_creek",
                 "mp_crossfire", "mp_farm", "mp_killhouse", "mp_overgrown",
                 "mp_pipeline", "mp_shipment","mp_showdown", "mp_strike",
-                "mp_vacant"]
+                "mp_vacant", "mp_killbox"]
 
     def __init__(self, dev):
         self.dev = dev
